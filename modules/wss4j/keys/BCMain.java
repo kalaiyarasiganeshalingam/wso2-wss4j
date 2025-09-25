@@ -37,18 +37,7 @@ public class BCMain {
         String pkcs12Alias = "dims";
         char[] pkcs12Password = "security".toCharArray();
 
-        //Plug the Provider into the JCA/JCE
-        String jceProvider = getPreferredJceProvider();
-        String providerClass;
-        if (BOUNCY_CASTLE_FIPS_PROVIDER.equals(jceProvider)) {
-            providerClass = "org.bouncycastle.jcajce.provider.BouncyCastleFipsProvider";
-        } else if (BOUNCY_CASTLE_PROVIDER.equals(jceProvider)) {
-            providerClass = "org.bouncycastle.jce.provider.BouncyCastleProvider";
-        } else {
-            throw new NoSuchProviderException("Configured JCE provider " + jceProvider + " is not supported");
-        }
-        Security.addProvider((Provider) Class.forName(providerClass).getDeclaredConstructor().newInstance());
-
+        String jceProvider = getJceProvider();
         //================================
         // JKS Stuff
         //================================
@@ -164,7 +153,11 @@ public class BCMain {
 
         KeyStore pkcs12KeyStore = null;
         try {
-            pkcs12KeyStore = KeyStore.getInstance("PKCS12", jceProvider);
+            if (jceProvider == null)
+                pkcs12KeyStore = KeyStore.getInstance("PKCS12");
+            else {
+                pkcs12KeyStore = KeyStore.getInstance("PKCS12", jceProvider);
+            }
             System.out.println("Create PKCS#12 KeyStore Object.");
         } catch (KeyStoreException e) {
             e.printStackTrace();
@@ -307,13 +300,13 @@ public class BCMain {
     /**
      * Get the preferred JCE provider.
      *
-     * @return the preferred JCE provider.
      */
-    private static String getPreferredJceProvider() {
+    private static String getJceProvider() {
         String provider = System.getProperty("security.jce.provider");
-        if (BOUNCY_CASTLE_FIPS_PROVIDER.equalsIgnoreCase(provider)) {
-            return BOUNCY_CASTLE_FIPS_PROVIDER;
+        if (BOUNCY_CASTLE_FIPS_PROVIDER.equalsIgnoreCase(provider) ||
+                BOUNCY_CASTLE_PROVIDER.equalsIgnoreCase(provider)) {
+            return  provider;
         }
-        return BOUNCY_CASTLE_PROVIDER;
+        return null;
     }
 }
