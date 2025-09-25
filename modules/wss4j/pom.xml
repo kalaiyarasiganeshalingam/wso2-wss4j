@@ -317,7 +317,6 @@
                     <includes>
                         <include>**/PackageTests.java</include>
                     </includes>
-                    <argLine>$(argLine}</argLine>
                 </configuration>
             </plugin>
             <plugin>
