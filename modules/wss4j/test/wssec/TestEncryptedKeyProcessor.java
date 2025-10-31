@@ -33,11 +33,13 @@ import org.apache.ws.security.processor.EncryptedKeyProcessor;
 import org.apache.xml.security.utils.Base64;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
+import org.w3c.dom.Node;
 
 import javax.security.auth.callback.Callback;
 import javax.security.auth.callback.CallbackHandler;
 import javax.security.auth.callback.UnsupportedCallbackException;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -105,10 +107,48 @@ public class TestEncryptedKeyProcessor extends TestCase implements CallbackHandl
 
     }
 
-    private void verify(Element enc)  {
+    private void verify(Element enc) {
         // Change the CipherValue of the key
-        String str = enc.getLastChild().getFirstChild().getTextContent();
-        enc.getLastChild().getFirstChild().setTextContent(Base64.encode(str.getBytes()));
+        Node last = enc != null ? enc.getLastChild() : null;
+        if (last == null) {
+            LOG.error("EncryptedKey element has no children");
+            return;
+        }
+        Node cipherValue = last.getFirstChild();
+        if (cipherValue == null) {
+            LOG.error("EncryptedKey/CipherValue is missing");
+            return;
+        }
+        String text;
+        try {
+            text = cipherValue.getTextContent();
+        } catch (AbstractMethodError ame) {
+            // Axis 1.x MessageElement path: concatenate TEXT + CDATA children
+            StringBuilder sb = new StringBuilder();
+            for (Node c = cipherValue.getFirstChild(); c != null; c = c.getNextSibling()) {
+                short t = c.getNodeType();
+                if (t == Node.TEXT_NODE || t == Node.CDATA_SECTION_NODE) {
+                    sb.append(c.getNodeValue());
+                }
+            }
+            text = sb.toString();
+        }
+        String encoded = Base64.encode(text.getBytes(StandardCharsets.UTF_8));
+        try {
+            cipherValue.setTextContent(encoded);
+        } catch (AbstractMethodError ame) {
+            // Replace existing TEXT/CDATA with a single TEXT node
+            Document doc = cipherValue.getOwnerDocument();
+            for (Node c = cipherValue.getFirstChild(); c != null; ) {
+                Node next = c.getNextSibling();
+                short t = c.getNodeType();
+                if (t == Node.TEXT_NODE || t == Node.CDATA_SECTION_NODE) {
+                    cipherValue.removeChild(c);
+                }
+                c = next;
+            }
+            cipherValue.appendChild(doc.createTextNode(encoded));
+        }
         EncryptedKeyProcessor encryptedKeyProcessor = new EncryptedKeyProcessor();
         try {
             encryptedKeyProcessor.handleEncryptedKey(enc, this, crypto, null);
