@@ -153,9 +153,9 @@ public class BCMain {
         //=====================================
         // PKCS#12 stuff
         //=====================================
-
-        KeyStore pkcs12KeyStore = KeyStore.getInstance("PKCS12");
-        System.out.println("Create PKCS#12 KeyStore Object.");
+        try {
+            KeyStore pkcs12KeyStore = KeyStore.getInstance("PKCS12");
+            System.out.println("Create PKCS#12 KeyStore Object.");
         } catch (KeyStoreException e) {
             e.printStackTrace();
             System.exit(1);
