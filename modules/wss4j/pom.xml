@@ -310,14 +310,13 @@
                 <configuration>
                     <reportFormat>brief</reportFormat>
                     <useFile>false</useFile>
-                    <argLine>${argLine} -Djava.endorsed.dirs=${basedir}/endorsed</argLine>
+                    <argLine>${argLine}</argLine>
                     <forkMode>once</forkMode>
                     <childDelegation>false</childDelegation>
                     <testFailureIgnore>true</testFailureIgnore>
                     <includes>
                         <include>**/PackageTests.java</include>
                     </includes>
-                    <argLine>$(argLine}</argLine>
                 </configuration>
             </plugin>
             <plugin>

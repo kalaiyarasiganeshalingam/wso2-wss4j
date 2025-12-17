@@ -308,12 +308,7 @@ public class WSSConfig {
                  * The last provider added has precedence, that is if JuiCE can be added
                  * then WSS4J uses this provider.
                  */
-                String jceProvider = getPreferredJceProvider();
-                if (BOUNCY_CASTLE_FIPS_PROVIDER.equals(jceProvider)) {
-                    addJceProvider(BOUNCY_CASTLE_FIPS_PROVIDER, "org.bouncycastle.jcajce.provider.BouncyCastleFipsProvider");
-                } else {
-                    addJceProvider(BOUNCY_CASTLE_PROVIDER, "org.bouncycastle.jce.provider.BouncyCastleProvider");
-                }
+                setPreferredJceProvider();
                 addJceProvider("JuiCE", "org.apache.security.juice.provider.JuiCEProviderOpenSSL");
             }
             //Transform.init();
@@ -665,28 +660,23 @@ public class WSSConfig {
      * @param className
      *            Name of the class the implements the provider. This class must
      *            be a subclass of <code>java.security.Provider</code>
-     * 
-     * @return Returns <code>true</code> if the provider was successfully
-     *         added, <code>false</code> otherwise.
+     *
      */
-    public boolean addJceProvider(String id, String className) {
+    public void addJceProvider(String id, String className) {
         if (jceProvider.get(id) == null && loadProvider(id, className)) {
             jceProvider.put(id, className);
-            return true;
         }
-        return false;
     }
 
     /**
-     * Get the preferred JCE provider.
-     *
-     * @return the preferred JCE provider.
+     * Set the preferred JCE provider.
      */
-    private static String getPreferredJceProvider() {
+    private void setPreferredJceProvider() {
         String provider = System.getProperty("security.jce.provider");
         if (BOUNCY_CASTLE_FIPS_PROVIDER.equalsIgnoreCase(provider)) {
-            return BOUNCY_CASTLE_FIPS_PROVIDER;
+            addJceProvider(provider, "org.bouncycastle.jcajce.provider.BouncyCastleFipsProvider");
+        } else {
+            addJceProvider(provider, "org.bouncycastle.jce.provider.BouncyCastleProvider");
         }
-        return BOUNCY_CASTLE_PROVIDER;
     }
 }

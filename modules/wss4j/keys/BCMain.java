@@ -11,6 +11,7 @@ import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
+import java.security.Provider;
 import java.security.Security;
 import java.security.UnrecoverableKeyException;
 import java.security.cert.Certificate;
@@ -21,6 +22,7 @@ import java.util.Enumeration;
 public class BCMain {
     public static final String BOUNCY_CASTLE_PROVIDER = "BC";
     public static final String BOUNCY_CASTLE_FIPS_PROVIDER = "BCFIPS";
+    private static final String SECURITY_JCE_PROVIDER = "security.jce.provider";
 
     public static void main(String[] args) {
         //==============================
@@ -37,17 +39,7 @@ public class BCMain {
         String pkcs12Alias = "dims";
         char[] pkcs12Password = "security".toCharArray();
 
-        //Plug the Provider into the JCA/JCE
-        String jceProvider = getPreferredJceProvider();
-        String providerClass;
-        if (BOUNCY_CASTLE_FIPS_PROVIDER.equals(jceProvider)) {
-            providerClass = "org.bouncycastle.jcajce.provider.BouncyCastleFipsProvider";
-        } else if (BOUNCY_CASTLE_PROVIDER.equals(jceProvider)) {
-            providerClass = "org.bouncycastle.jce.provider.BouncyCastleProvider";
-        } else {
-            throw new NoSuchProviderException("Configured JCE provider " + jceProvider + " is not supported");
-        }
-        Security.addProvider((Provider) Class.forName(providerClass).getDeclaredConstructor().newInstance());
+        addProvider(getPreferredJceProvider());
 
         //================================
         // JKS Stuff
@@ -64,7 +56,7 @@ public class BCMain {
         }
         KeyStore jksKeyStore = null;
         try {
-            jksKeyStore = KeyStore.getInstance("JKS", "SUN");
+            jksKeyStore = KeyStore.getInstance("JKS");
             System.out.println("Create JKS KeyStore Object.");
         } catch (KeyStoreException e) {
             e.printStackTrace();
@@ -161,10 +153,8 @@ public class BCMain {
         //=====================================
         // PKCS#12 stuff
         //=====================================
-
-        KeyStore pkcs12KeyStore = null;
         try {
-            pkcs12KeyStore = KeyStore.getInstance("PKCS12", jceProvider);
+            KeyStore pkcs12KeyStore = KeyStore.getInstance("PKCS12");
             System.out.println("Create PKCS#12 KeyStore Object.");
         } catch (KeyStoreException e) {
             e.printStackTrace();
@@ -304,16 +294,28 @@ public class BCMain {
         }
     }
 
-    /**
-     * Get the preferred JCE provider.
-     *
-     * @return the preferred JCE provider.
-     */
     private static String getPreferredJceProvider() {
-        String provider = System.getProperty("security.jce.provider");
-        if (BOUNCY_CASTLE_FIPS_PROVIDER.equalsIgnoreCase(provider)) {
+        String provider = System.getProperty(SECURITY_JCE_PROVIDER);
+        if (provider != null && provider.equalsIgnoreCase(BOUNCY_CASTLE_FIPS_PROVIDER)) {
             return BOUNCY_CASTLE_FIPS_PROVIDER;
         }
         return BOUNCY_CASTLE_PROVIDER;
+    }
+
+    private static void addProvider(String jceProvider) {
+        if (System.getProperty(SECURITY_JCE_PROVIDER) == null || System.getProperty(SECURITY_JCE_PROVIDER).isEmpty()) {
+            String providerClass;
+            if (BOUNCY_CASTLE_FIPS_PROVIDER.equals(jceProvider)) {
+                providerClass = "org.bouncycastle.jcajce.provider.BouncyCastleFipsProvider";
+            } else {
+                providerClass = "org.bouncycastle.jce.provider.BouncyCastleProvider";
+            }
+            try {
+                Security.addProvider((Provider) Class.forName(providerClass).getDeclaredConstructor().newInstance());
+            } catch (Exception e) {
+                e.printStackTrace();
+                System.exit(1);
+            }
+        }
     }
 }
